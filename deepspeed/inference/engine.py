@@ -51,7 +51,7 @@ class InferenceEngine(Module):
         elif self.mp_world_size > 1 and not dist.is_initialized():
             self._create_model_parallel_group()
         else:
-            self.module.to(torch.cuda.current_device())
+            self.module.to(torch.device('cpu'))
 
         self._check_quantize_setting(quantization_setting)
 
@@ -91,12 +91,12 @@ class InferenceEngine(Module):
         init_distributed()
 
         local_rank = int(os.getenv('LOCAL_RANK', '0'))
-        torch.cuda.set_device(local_rank)
+        torch.set_device(local_rank)
 
         ranks = [i for i in range(self.mp_world_size)]
         self.mp_group = dist.new_group(ranks)
 
-        self.module.to(torch.cuda.current_device())
+        self.module.to(torch.device('cpu'))
         for p in self.module.parameters():
             if torch.is_tensor(p):
                 dist.broadcast(p, 0)
@@ -187,7 +187,7 @@ class InferenceEngine(Module):
     def _pre_forward_hook(self, module, *inputs, **kwargs):
         for input in inputs:
             if torch.is_tensor(input):
-                input = input.to(torch.cuda.current_device())
+                input = input.to(torch.device('cpu'))
                 if self.mp_world_size > 1:
                     if not input.is_contiguous():
                         input = input.contiguous()
@@ -195,7 +195,7 @@ class InferenceEngine(Module):
 
         for k in kwargs:
             if torch.is_tensor(kwargs[k]):
-                kwargs[k] = kwargs[k].to(torch.cuda.current_device())
+                kwargs[k] = kwargs[k].to(torch.device('cpu'))
                 if self.mp_world_size > 1:
                     if not kwargs[k].is_contiguous():
                         kwargs[k] = kwargs[k].contiguous()
@@ -212,7 +212,7 @@ class InferenceEngine(Module):
             if self.mpu is None:
                 for input in inputs:
                     if torch.is_tensor(input):
-                        input = input.to(torch.cuda.current_device())
+                        input = input.to(torch.device('cpu'))
                         if self.mp_world_size > 1:
                             if not input.is_contiguous():
                                 input = input.contiguous()
@@ -220,7 +220,7 @@ class InferenceEngine(Module):
 
                 for k in kwargs:
                     if torch.is_tensor(kwargs[k]):
-                        kwargs[k] = kwargs[k].to(torch.cuda.current_device())
+                        kwargs[k] = kwargs[k].to(torch.device('cpu'))
                         if self.mp_world_size > 1:
                             if not kwargs[k].is_contiguous():
                                 kwargs[k] = kwargs[k].contiguous()
